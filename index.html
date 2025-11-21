@@ -215,7 +215,7 @@
         <h2>Technician Login</h2>
         <p class="muted">
           Enter the access code to unlock the Asphalt Buddy tools.
-          (Front-end only – change the code to whatever you want.)
+          (Front-end only – change the code in the script if needed.)
         </p>
 
         <label for="accessCode">Access code</label>
@@ -224,7 +224,7 @@
           type="password"
           inputmode="numeric"
           autocomplete="off"
-          placeholder="e.g. 4242"
+          placeholder="e.g. 42069"
         />
 
         <button class="full-width" onclick="handleLogin()">Unlock</button>
@@ -263,12 +263,12 @@
         <div class="card">
           <h2>Welcome</h2>
           <p class="muted">
-            This is your field toolkit for asphalt plants: tach calibration,
-            VFD cheat sheets, and networking notes – all in one place.
+            Field toolkit for asphalt plants: tach calibration, VFD reference,
+            and networking notes in one place.
           </p>
           <p class="muted">
-            Use the tabs above to jump between calculators and guides. You can
-            send this link to coworkers or customers once it’s on GitHub Pages.
+            Use the tabs above to jump between calculators and guides. Share this
+            link with coworkers or customers once it’s on GitHub Pages.
           </p>
         </div>
       </section>
@@ -314,8 +314,8 @@
             <div id="tachResult" class="result"></div>
 
             <p class="helper-text">
-              Tip: Plug the new coefficient into the drive/tach scaling parameter,
-              then re-check the reading at the same speed reference.
+              Plug the new coefficient into the drive/tach scaling parameter, then
+              re-check the reading at the same speed reference.
             </p>
           </div>
 
@@ -323,16 +323,13 @@
           <div class="card">
             <h2>More Calculators (Coming Soon)</h2>
             <p class="muted">
-              You can add:
+              Ideas to add later:
             </p>
             <ul class="muted">
-              <li>Analog input scaling helpers (4–20 mA / 0–10 V)</li>
+              <li>4–20 mA scaling helpers</li>
               <li>VFD frequency vs belt speed checks</li>
               <li>Burner / exhaust fan ratio quick reference</li>
             </ul>
-            <p class="muted">
-              We can wire these in next using the same layout as the tach calculator.
-            </p>
           </div>
         </div>
       </section>
@@ -340,27 +337,263 @@
       <!-- GUIDES TAB -->
       <section id="tab-guides" class="tabContent">
         <div class="card">
-          <h2>VFD Quick Reference</h2>
+          <h2>VFD Quick Reference – 0–10 V, Start, Run Status</h2>
           <p class="muted">
-            Drop your most-used parameter notes here – Danfoss, Schneider,
-            Weg, etc. For now this is just placeholder content:
+            Generic step-by-step checklists for common VFD families.
+            Always confirm terminal numbers and parameter IDs in the manual for
+            your exact model before applying live.
           </p>
-          <ul class="muted">
-            <li>Danfoss: Terminal 50 / 53 / 55 analog setup notes</li>
-            <li>0–10 V speed reference landing points</li>
-            <li>Common alarm codes and what to check first</li>
-          </ul>
+
+          <!-- DANFOSS -->
+          <details>
+            <summary><strong>Danfoss (VLT FC series – FC301/FC302 style)</strong></summary>
+            <ol class="muted">
+              <li>
+                <strong>0–10 VDC speed reference</strong>
+                <ol>
+                  <li>Wire the 0–10 V signal into an analog input terminal that supports voltage (for example, terminal 53 or 54 on FC302; ensure its small selector switch is set for voltage, not current).</li>
+                  <li>In the analog input menu, set the input type to <em>0–10 V</em> and assign that analog input as the main speed reference.</li>
+                  <li>Set minimum and maximum reference values so 0 V = minimum speed (often 0 Hz) and 10 V = maximum speed (your max Hz setting).</li>
+                  <li>If needed, adjust filtering and deadband so the motor doesn’t “hunt” with small noise on the signal.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Start / run command input</strong>
+                <ol>
+                  <li>Pick a digital input and its common (dry contact between DI and COM).</li>
+                  <li>In the digital input configuration, set that DI’s function to <em>Start / Run</em> or <em>Coast/Stop + Start</em>, depending on your sequence style.</li>
+                  <li>Set the polarity (normally open vs normally closed) to match your field contact.</li>
+                  <li>Set the drive’s “command source” so it accepts run commands from terminals (not only from the keypad or fieldbus).</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Run status output</strong>
+                <ol>
+                  <li>Choose either a relay output or a digital output terminal to use as the “drive running” signal.</li>
+                  <li>In the output configuration, assign its function to <em>Drive running</em> / <em>Run status</em> (true whenever the drive has a valid run command and output frequency &gt; 0).</li>
+                  <li>Wire the output contacts back to your PLC/HMI input or interlock circuit.</li>
+                  <li>Test: command the drive to run and verify the run status changes state when the motor actually runs.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <!-- YASKAWA -->
+          <details>
+            <summary><strong>Yaskawa (V1000 / GA-style drives)</strong></summary>
+            <ol class="muted">
+              <li>
+                <strong>0–10 VDC speed reference</strong>
+                <ol>
+                  <li>Wire the 0–10 V signal to the analog input terminal (for example A1) and its common (ACOM).</li>
+                  <li>In the parameters, set the speed reference source to “external terminals” (on many Yaskawas this is a <code>b1-xx</code> parameter; check the sheet for your model).</li>
+                  <li>Set the analog input mode to voltage and the scaling so 0 V = min freq and 10 V = max freq.</li>
+                  <li>Verify by monitoring the frequency command monitor on the keypad while sweeping the 0–10 V signal.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Start / run command input</strong>
+                <ol>
+                  <li>Wire your start contact to one of the digital inputs (for example S1) and the digital common (SC).</li>
+                  <li>Choose 2-wire or 3-wire control style in the run command parameters (Yaskawa uses <code>b1-17</code> / similar for this).</li>
+                  <li>Assign the selected DI as “Forward run” (and optionally another DI as “Reverse run” if you need bi-directional control).</li>
+                  <li>Set “run command source” to “terminals” so the drive listens to S1/SC instead of keypad only.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Run status output</strong>
+                <ol>
+                  <li>Pick a multifunction output (digital output or relay, depending on your frame size).</li>
+                  <li>In the output function parameters, assign that output to “Run” or “Drive running”.</li>
+                  <li>Wire the output into your PLC input or permissive chain (for example, “OK to start burner when VFD running”).</li>
+                  <li>Test by starting and stopping the drive to verify the output follows the motor run state.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <!-- TOSHIBA -->
+          <details>
+            <summary><strong>Toshiba (VF-S series – e.g., VF-S15)</strong></summary>
+            <ol class="muted">
+              <li>
+                <strong>0–10 VDC speed reference</strong>
+                <ol>
+                  <li>Wire the 0–10 VDC signal to an analog input capable of 0–10 V (for example VIA or VIB) and its common.</li>
+                  <li>Use the analog input selection parameter (on VF-S15 this is an <code>f10x/f109</code>-type setting) to define that terminal as a voltage input, not logic or current.</li>
+                  <li>Assign that analog input as the frequency command source and set min/max scaling for 0–10 V = 0–max Hz.</li>
+                  <li>Confirm response by monitoring the command frequency on the display while changing the input voltage.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Start / run command input</strong>
+                <ol>
+                  <li>Wire your start contact between a digital input (for example F or a programmable DI) and its common.</li>
+                  <li>Set the operation command source to “external terminals” so the VFD listens to the DI instead of the keypad.</li>
+                  <li>Assign that DI’s function as “Run” (or “Forward run”) and match the contact logic (NO/NC) in the parameter.</li>
+                  <li>Check that the run LED and output frequency change when you close the start contact.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Run status output</strong>
+                <ol>
+                  <li>Select a relay output or open-collector digital output for run status.</li>
+                  <li>In the output function parameter list, map that output to “Running” / “Operation status”.</li>
+                  <li>Wire it to your PLC input or interlock as a dry contact or open-collector signal according to the manual’s wiring diagram.</li>
+                  <li>Test: start the drive and verify the output changes state only when the motor is actually commanded to run.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <!-- SCHNEIDER -->
+          <details>
+            <summary><strong>Schneider / Altivar (ATV / Altivar Process – e.g., ATV630)</strong></summary>
+            <ol class="muted">
+              <li>
+                <strong>0–10 VDC speed reference</strong>
+                <ol>
+                  <li>Wire the 0–10 V signal to an analog input (commonly AI1) and COM per the Altivar wiring diagram.</li>
+                  <li>In the drive menu (often under Complete settings → I/O → AI/AQ), set AI1 to 0–10 V and assign it as the main speed reference.</li>
+                  <li>Set <em>low</em> and <em>high</em> scale values so 0 V corresponds to min speed, 10 V to max speed.</li>
+                  <li>Verify using the drive’s monitoring screen that the “Speed reference” value tracks the 0–10 V signal.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Start / run command input</strong>
+                <ol>
+                  <li>Wire a dry contact between a digital input (for example DI1) and its common (COM).</li>
+                  <li>In the I/O configuration, assign DI1’s function to “Run” (2-wire) or to the appropriate 3-wire start/stop scheme you use at your plants.</li>
+                  <li>Set the command channel so the drive accepts run commands from terminals instead of just the HMI or fieldbus.</li>
+                  <li>Confirm that closing the contact starts the drive and releasing it stops it according to your chosen mode.</li>
+                </ol>
+              </li>
+              <li>
+                <strong>Run status output</strong>
+                <ol>
+                  <li>Pick a relay output (R1/R2, etc.) or logic output as your “Drive running” signal.</li>
+                  <li>In the output assignment menu, set that output function to “Drive running” or “Motor running”.</li>
+                  <li>Wire the contacts into your PLC/HMI or interlocks exactly as a standard dry contact.</li>
+                  <li>Test the behavior across run, stop, and fault conditions so the PLC logic matches how the drive signals “running”.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+        </div>
+
+        <!-- 4–20mA CONFIGURATIONS -->
+        <div class="card">
+          <h2>4–20mA Configurations</h2>
           <p class="muted">
-            When you’re ready, I can turn each bullet into a clean, structured
-            guide section.
+            Step-by-step setup for 4–20mA analog inputs as speed reference on
+            Danfoss, Yaskawa, Toshiba, and Schneider drives.
+          </p>
+
+          <!-- DANFOSS 4-20mA -->
+          <details>
+            <summary><strong>Danfoss (VLT FC series) – 4–20mA</strong></summary>
+            <h3>How to Configure</h3>
+            <ol class="muted">
+              <li><strong>Wiring</strong>
+                <ol>
+                  <li>Land the + (positive) of your 4–20mA loop on terminal 53 or 54 (whichever supports current on your unit).</li>
+                  <li>Land the – (negative) on terminal 39 (analog common).</li>
+                  <li>Ensure the small physical switch on the side of the analog input card is set to <strong>current (mA)</strong>, not voltage.</li>
+                </ol>
+              </li>
+              <li><strong>Parameters</strong>
+                <ol>
+                  <li>Set the analog input mode to <strong>4–20mA</strong>.</li>
+                  <li>Assign this analog input as the <strong>Main Speed Reference</strong>.</li>
+                  <li>Set minimum value = 4 mA = 0 Hz (or your plant’s minimum speed).</li>
+                  <li>Set maximum value = 20 mA = max Hz (60 Hz or your max belt speed setting).</li>
+                  <li>Enable filtering (low-pass) if your signal is noisy or the speed “hunts”.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <!-- YASKAWA 4-20mA -->
+          <details>
+            <summary><strong>Yaskawa (V1000 / GA800) – 4–20mA</strong></summary>
+            <h3>How to Configure</h3>
+            <ol class="muted">
+              <li><strong>Wiring</strong>
+                <ol>
+                  <li>Wire loop + to terminal A2 (4–20mA analog input).</li>
+                  <li>Wire loop – to terminal AC (analog common).</li>
+                  <li>Make sure your transmitter/loop power supply shares the proper common reference.</li>
+                </ol>
+              </li>
+              <li><strong>Parameters</strong>
+                <ol>
+                  <li>Set the analog input mode for A2 to <strong>Current (4–20mA)</strong>.</li>
+                  <li>Set the drive’s Reference Source = “External Analog Input”.</li>
+                  <li>Scale 4mA = low frequency (0 Hz or min speed), 20mA = high frequency (max speed).</li>
+                  <li>Set filtering/smoothing to avoid jitter, especially at low speed.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <!-- TOSHIBA 4-20mA -->
+          <details>
+            <summary><strong>Toshiba (VF-S series) – 4–20mA</strong></summary>
+            <h3>How to Configure</h3>
+            <ol class="muted">
+              <li><strong>Wiring</strong>
+                <ol>
+                  <li>Wire the 4–20mA + signal to VIA (or the designated mA analog input for your model).</li>
+                  <li>Wire the 4–20mA – to analog common.</li>
+                  <li>Verify your loop power and commons are referenced correctly.</li>
+                </ol>
+              </li>
+              <li><strong>Parameters</strong>
+                <ol>
+                  <li>Set the analog input mode to <strong>mA (4–20mA)</strong> in the appropriate f10x/f109-type parameter (depends on the exact VF-S model).</li>
+                  <li>Assign VIA/VIB as the Frequency Command Source.</li>
+                  <li>Scale 4mA → minimum speed, 20mA → maximum speed.</li>
+                  <li>Adjust filtering if the motor/belt speed is unstable at low mA values.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <!-- SCHNEIDER 4-20mA -->
+          <details>
+            <summary><strong>Schneider / Altivar (ATV630 etc.) – 4–20mA</strong></summary>
+            <h3>How to Configure</h3>
+            <ol class="muted">
+              <li><strong>Wiring</strong>
+                <ol>
+                  <li>Wire loop + to an analog input rated for mA (for example AI2, depending on model).</li>
+                  <li>Wire loop – to COM.</li>
+                  <li>Check jumpers or configuration options to be sure the input is in “current” mode, not voltage.</li>
+                </ol>
+              </li>
+              <li><strong>Parameters</strong>
+                <ol>
+                  <li>In I/O Config → Analog Inputs, set the selected AI to <strong>4–20mA Current Mode</strong>.</li>
+                  <li>Assign this analog input as the main speed reference channel.</li>
+                  <li>Set min/max scaling so 4mA = minimum frequency and 20mA = maximum frequency.</li>
+                  <li>Enable filtering if the cable run is long or noisy.</li>
+                </ol>
+              </li>
+            </ol>
+          </details>
+
+          <p class="muted" style="margin-top: 12px;">
+            Always confirm terminal labels and parameter numbers for your exact VFD model.
+            These sequences reflect common patterns and are meant as a field memory aid.
           </p>
         </div>
 
         <div class="card">
           <h2>Networking Notes</h2>
           <p class="muted">
-            Use this space for IP schemes, default gateways, typical PLC /
-            HMI addresses, and port-forwarding notes for remote support.
+            Use this space for IP schemes, default gateways, PLC/HMI addresses,
+            VPN or port-forwarding notes, and anything you want to remember for
+            remote access at your customers' plants.
           </p>
         </div>
       </section>
@@ -370,7 +603,7 @@
   <script>
     // 🔐 Simple front-end "login"
     // Change this to whatever access code you want
-    const ACCESS_CODE = "4242";
+    const ACCESS_CODE = "42069";
 
     function showApp() {
       document.getElementById("loginView").style.display = "none";
