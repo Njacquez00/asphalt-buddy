@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asphalt Buddy</title>
+
+  <style>
+    :root {
+      --primary: #1a73e8;
+      --primary-dark: #155fc4;
+      --bg: #f4f4f4;
+      --card-bg: #ffffff;
+      --border: #dddddd;
+      --text-main: #222222;
+      --text-muted: #666666;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    /* App shell */
+    header {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    header span {
+      font-size: 0.8rem;
+      opacity: 0.9;
+    }
+
+    main {
+      padding: 16px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Login screen */
+    #loginView {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #loginInner {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #loginCard {
+      max-width: 400px;
+      width: 100%;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    input[type="number"],
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      display: inline-block;
+      padding: 10px 14px;
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 14px;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    button.secondary {
+      background: #eeeeee;
+      color: #333333;
+    }
+
+    button.full-width {
+      width: 100%;
+    }
+
+    .error {
+      color: #c53030;
+      font-size: 0.9rem;
+      margin-top: 8px;
+    }
+
+    /* App view */
+    #appView {
+      display: none; /* hidden until login success */
+      min-height: 100vh;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+      overflow-x: auto;
+    }
+
+    .tab {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .tabContent {
+      display: none;
+    }
+
+    .tabContent.active {
+      display: block;
+    }
+
+    /* Tach card specific */
+    .result {
+      margin-top: 16px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .helper-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    @media (min-width: 768px) {
+      .calculator-grid {
+        display: flex;
+        gap: 16px;
+      }
+      .calculator-grid > .card {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN VIEW -->
+  <div id="loginView">
+    <header>
+      <h1>Asphalt Buddy</h1>
+      <span>Access Portal</span>
+    </header>
+
+    <div id="loginInner">
+      <div class="card" id="loginCard">
+        <h2>Technician Login</h2>
+        <p class="muted">
+          Enter the access code to unlock the Asphalt Buddy tools.
+          (Front-end only – change the code to whatever you want.)
+        </p>
+
+        <label for="accessCode">Access code</label>
+        <input
+          id="accessCode"
+          type="password"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="e.g. 4242"
+        />
+
+        <button class="full-width" onclick="handleLogin()">Unlock</button>
+        <div id="loginError" class="error"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP VIEW -->
+  <div id="appView">
+    <header>
+      <h1>Asphalt Buddy</h1>
+      <span>
+        <button class="secondary" onclick="logout()" style="font-size:0.75rem;">
+          Logout
+        </button>
+      </span>
+    </header>
+
+    <main>
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">
+          Dashboard
+        </div>
+        <div class="tab" data-tab="calculators" onclick="switchTab('calculators')">
+          Calculators
+        </div>
+        <div class="tab" data-tab="guides" onclick="switchTab('guides')">
+          VFD & Networking Guides
+        </div>
+      </div>
+
+      <!-- DASHBOARD TAB -->
+      <section id="tab-dashboard" class="tabContent active">
+        <div class="card">
+          <h2>Welcome</h2>
+          <p class="muted">
+            This is your field toolkit for asphalt plants: tach calibration,
+            VFD cheat sheets, and networking notes – all in one place.
+          </p>
+          <p class="muted">
+            Use the tabs above to jump between calculators and guides. You can
+            send this link to coworkers or customers once it’s on GitHub Pages.
+          </p>
+        </div>
+      </section>
+
+      <!-- CALCULATORS TAB -->
+      <section id="tab-calculators" class="tabContent">
+        <div class="calculator-grid">
+          <!-- Tach Coefficient Calculator -->
+          <div class="card">
+            <h2>Tach Coefficient Calculator</h2>
+            <p class="muted">
+              Formula: <strong>New Coefficient = (Set point ÷ Actual) × Old Coefficient</strong>
+            </p>
+
+            <label for="tachSetpoint">Set point (what you WANT to see)</label>
+            <input
+              id="tachSetpoint"
+              type="number"
+              inputmode="decimal"
+              placeholder="e.g. 1800"
+            />
+
+            <label for="tachActual">Actual reading (what you ARE seeing)</label>
+            <input
+              id="tachActual"
+              type="number"
+              inputmode="decimal"
+              placeholder="e.g. 1725"
+            />
+
+            <label for="tachOldCoeff">Old coefficient (current scaling)</label>
+            <input
+              id="tachOldCoeff"
+              type="number"
+              inputmode="decimal"
+              placeholder="e.g. 1.00"
+            />
+
+            <button class="full-width" type="button" onclick="calculateTachCoefficient()">
+              Calculate New Coefficient
+            </button>
+
+            <div id="tachResult" class="result"></div>
+
+            <p class="helper-text">
+              Tip: Plug the new coefficient into the drive/tach scaling parameter,
+              then re-check the reading at the same speed reference.
+            </p>
+          </div>
+
+          <!-- Placeholder for future calculators -->
+          <div class="card">
+            <h2>More Calculators (Coming Soon)</h2>
+            <p class="muted">
+              You can add:
+            </p>
+            <ul class="muted">
+              <li>Analog input scaling helpers (4–20 mA / 0–10 V)</li>
+              <li>VFD frequency vs belt speed checks</li>
+              <li>Burner / exhaust fan ratio quick reference</li>
+            </ul>
+            <p class="muted">
+              We can wire these in next using the same layout as the tach calculator.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- GUIDES TAB -->
+      <section id="tab-guides" class="tabContent">
+        <div class="card">
+          <h2>VFD Quick Reference</h2>
+          <p class="muted">
+            Drop your most-used parameter notes here – Danfoss, Schneider,
+            Weg, etc. For now this is just placeholder content:
+          </p>
+          <ul class="muted">
+            <li>Danfoss: Terminal 50 / 53 / 55 analog setup notes</li>
+            <li>0–10 V speed reference landing points</li>
+            <li>Common alarm codes and what to check first</li>
+          </ul>
+          <p class="muted">
+            When you’re ready, I can turn each bullet into a clean, structured
+            guide section.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>Networking Notes</h2>
+          <p class="muted">
+            Use this space for IP schemes, default gateways, typical PLC /
+            HMI addresses, and port-forwarding notes for remote support.
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // 🔐 Simple front-end "login"
+    // Change this to whatever access code you want
+    const ACCESS_CODE = "4242";
+
+    function showApp() {
+      document.getElementById("loginView").style.display = "none";
+      document.getElementById("appView").style.display = "block";
+    }
+
+    function showLogin() {
+      document.getElementById("loginView").style.display = "flex";
+      document.getElementById("appView").style.display = "none";
+    }
+
+    function handleLogin() {
+      const input = document.getElementById("accessCode").value.trim();
+      const errorEl = document.getElementById("loginError");
+
+      if (!input) {
+        errorEl.textContent = "Enter the access code.";
+        return;
+      }
+
+      if (input === ACCESS_CODE) {
+        errorEl.textContent = "";
+        localStorage.setItem("asphaltBuddyLoggedIn", "1");
+        showApp();
+      } else {
+        errorEl.textContent = "Invalid code.";
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("asphaltBuddyLoggedIn");
+      showLogin();
+    }
+
+    // Keep user logged in if they've already unlocked it once
+    (function initLoginState() {
+      const logged = localStorage.getItem("asphaltBuddyLoggedIn") === "1";
+      if (logged) {
+        showApp();
+      } else {
+        showLogin();
+      }
+    })();
+
+    // 🧭 Tab switching
+    function switchTab(tabName) {
+      const tabs = document.querySelectorAll(".tab");
+      const contents = document.querySelectorAll(".tabContent");
+
+      tabs.forEach((t) => {
+        t.classList.toggle("active", t.dataset.tab === tabName);
+      });
+
+      contents.forEach((c) => {
+        c.classList.toggle("active", c.id === "tab-" + tabName);
+      });
+    }
+
+    // 🧮 Tach coefficient calculation
+    function calculateTachCoefficient() {
+      const setpoint = parseFloat(
+        document.getElementById("tachSetpoint").value
+      );
+      const actual = parseFloat(document.getElementById("tachActual").value);
+      const oldCoeff = parseFloat(
+        document.getElementById("tachOldCoeff").value
+      );
+      const resultEl = document.getElementById("tachResult");
+
+      if (isNaN(setpoint) || isNaN(actual) || isNaN(oldCoeff)) {
+        resultEl.textContent = "Please fill in all three fields.";
+        return;
+      }
+
+      if (actual === 0) {
+        resultEl.textContent = "Actual reading cannot be zero.";
+        return;
+      }
+
+      // New Coefficient = (Set point ÷ Actual) × Old Coefficient
+      const newCoeff = (setpoint / actual) * oldCoeff;
+
+      resultEl.textContent = "New coefficient: " + newCoeff.toFixed(3);
+    }
+  </script>
+</body>
+</html>
